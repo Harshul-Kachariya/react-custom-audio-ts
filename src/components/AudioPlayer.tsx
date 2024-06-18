@@ -1,8 +1,10 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { FaPlay, FaPause } from "react-icons/fa";
-import { GoUnmute, GoMute } from "react-icons/go";
+import { GoMute, GoUnmute } from "react-icons/go";
 
-const AudioPlayer: React.FC = () => {
+const AudioPlayer: React.FC = (props: any) => {
+  // const [url, setUrl] = useState(props.abc);
+  let url = props.abc;
   const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -14,6 +16,7 @@ const AudioPlayer: React.FC = () => {
   const pauseTimeRef = useRef<number>(0);
   const animationFrameRef = useRef<number | null>(null);
 
+  // Load the audio data
   const loadAudio = async (url: string) => {
     try {
       const response = await fetch(url);
@@ -24,39 +27,39 @@ const AudioPlayer: React.FC = () => {
       console.error("Error loading audio:", error);
     }
   };
+
+  // Initialize the audio context and load the audio
   useEffect(() => {
     const context = new AudioContext();
     setAudioContext(context);
     gainNodeRef.current = context.createGain();
-    loadAudio("../../public/sample.mp3");
+    loadAudio(url);
     return () => {
       context.close();
     };
-  }, []);
+  }, [url]);
 
+  // Update the progress bar based on the current time
   const updateProgress = useCallback(() => {
     if (audioBuffer && audioContext && isPlaying) {
-      const elapsed =
-        audioContext.currentTime - startTimeRef.current + pauseTimeRef.current;
-      const percentage = (elapsed / audioBuffer.duration) * 100;
+      const elapsed = audioContext.currentTime - startTimeRef.current;
+      const percentage =
+        ((pauseTimeRef.current + elapsed) / audioBuffer.duration) * 100;
       setProgress(percentage);
       animationFrameRef.current = requestAnimationFrame(updateProgress);
     }
   }, [audioBuffer, audioContext, isPlaying]);
 
+  // Manage the play/pause functionality
   const playAudio = () => {
     if (audioBuffer && audioContext && gainNodeRef.current) {
       if (!isPlaying) {
-        createAndStartSource();
+        // Resume playback from the last paused position
+        createAndStartSource(pauseTimeRef.current);
         setIsPlaying(true);
         animationFrameRef.current = requestAnimationFrame(updateProgress);
-
-        sourceRef.current!.onended = () => {
-          setIsPlaying(false);
-          setProgress(100);
-          cancelAnimationFrame(animationFrameRef.current!);
-        };
       } else {
+        // Pause the audio
         sourceRef.current?.stop();
         pauseTimeRef.current += audioContext.currentTime - startTimeRef.current;
         setIsPlaying(false);
@@ -65,16 +68,23 @@ const AudioPlayer: React.FC = () => {
     }
   };
 
+  // Create and start a new audio source
   const createAndStartSource = (startTime = 0) => {
+    // Stop any existing audio source
+    if (sourceRef.current) {
+      sourceRef.current.stop();
+    }
     sourceRef.current = audioContext!.createBufferSource();
     sourceRef.current.buffer = audioBuffer!;
     sourceRef.current
       .connect(gainNodeRef.current!)
       .connect(audioContext!.destination);
-    startTimeRef.current = audioContext!.currentTime + startTime;
+
+    startTimeRef.current = audioContext!.currentTime - startTime;
     sourceRef.current.start(0, startTime);
   };
 
+  // Toggle the mute state
   const toggleMute = () => {
     if (gainNodeRef.current) {
       gainNodeRef.current.gain.value = isMuted ? 1 : 0;
@@ -82,30 +92,37 @@ const AudioPlayer: React.FC = () => {
     }
   };
 
+  // Handle seeking through the progress bar
   const handleProgressBarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (audioContext && audioBuffer) {
       const newProgress = parseFloat(e.target.value);
-      setProgress(newProgress);
+      console.log(newProgress);
       const newStartTime = (newProgress / 100) * audioBuffer.duration;
 
-      if (!isPlaying) {
+      setProgress(newProgress);
+
+      if (isPlaying) {
+        // Update the playback position during play
+        sourceRef.current?.stop();
         createAndStartSource(newStartTime);
       }
-      startTimeRef.current = audioContext.currentTime - newStartTime;
+      pauseTimeRef.current = newStartTime;
+      startTimeRef.current = audioContext.currentTime; // Reset the start time reference
     }
   };
 
+  // Format time for display
   const formatTime = (timeInSeconds: number): string => {
     const minutes = Math.floor(timeInSeconds / 60);
     const seconds = Math.floor(timeInSeconds % 60);
+    if (audioBuffer?.duration && audioBuffer?.duration != 0) {
+      //setProgress((timeInSeconds * 100) / (audioBuffer?.duration || 0));
+    }
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
   return (
     <div className="flex gap-3 justify-center items-center">
-      <button onClick={() => loadAudio("../../public/sample.mp3")}>
-        Load Audio
-      </button>
       <button onClick={playAudio}>
         {isPlaying ? <FaPause /> : <FaPlay />}
       </button>
