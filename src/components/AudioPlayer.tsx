@@ -148,21 +148,21 @@ const AudioPlayer: React.FC = () => {
   }, [audioBuffer?.duration, currentTimes]);
 
   return (
-    <div className="flex gap-3 justify-center items-center">
+    <div className="flex gap-3 justify-center items-center bg-pink-400 p-2.5 rounded-lg">
       <button onClick={() => loadAudio(sample)}>Audio</button>
       <button onClick={playAudio}>
         {isPlaying ? <FaPause /> : <FaPlay />}
       </button>
       <div className="text-lg">{formatTime(currentTimes)}</div>
-      <div className="cursor-default">
-        <input
-          type="range"
-          max="100"
-          value={progress}
-          onChange={handleProgressBarChange}
-          className="w-64 h-[2px] cursor-pointer"
-        />
-      </div>
+
+      <input
+        type="range"
+        max="100"
+        value={progress}
+        onChange={handleProgressBarChange}
+        className="w-40 h-[2px] cursor-pointe"
+      />
+
       <button onClick={toggleMute}>
         {isMuted ? <GoMute /> : <GoUnmute />}
       </button>
