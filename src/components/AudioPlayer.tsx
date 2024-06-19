@@ -57,13 +57,24 @@ const AudioPlayer: React.FC = () => {
   const playAudio = () => {
     if (audioBuffer && audioContext && gainNodeRef.current) {
       if (!isPlaying) {
+        // Reset variables if audio has reached the end
+        if (hasReachedEnd) {
+          setHasReachedEnd(false);
+          pauseTimeRef.current = 0;
+          startTimeRef.current = 0;
+        }
+
         // Resume playback from the last paused position
         createAndStartSource(pauseTimeRef.current);
         startTimeRef.current = audioContext.currentTime - pauseTimeRef.current;
         setIsPlaying(true);
-        setHasReachedEnd(false);
         pauseTimeRef.current = 0;
         animationFrameRef.current = requestAnimationFrame(updateProgress);
+      } else if (
+        Math.floor(audioBuffer?.duration) === Math.floor(currentTimes)
+      ) {
+        setIsPlaying(false);
+        setCurrentTimes(audioBuffer.duration);
       } else {
         // Pause the audio
         sourceRef.current?.stop();
