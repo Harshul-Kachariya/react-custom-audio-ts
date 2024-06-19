@@ -5,11 +5,12 @@ import { GoMute, GoUnmute } from "react-icons/go";
 import sample from "../../public/sample2.mp3";
 
 const AudioPlayer: React.FC = () => {
-  const [audioBuffer, setAudioBuffer] = useState<AudioBuffer | null>(null);
+  const [audioBuffer, setAudioBuffer] = useState<any | null>(null);
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [hasReachedEnd, setHasReachedEnd] = useState<boolean>(false);
   const [progress, setProgress] = useState(0);
-  const [currentTimes, setCurrentTimes] = useState(0);
+  const [currentTimes, setCurrentTimes] = useState<any | null>(0);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const sourceRef = useRef<AudioBufferSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
@@ -42,7 +43,7 @@ const AudioPlayer: React.FC = () => {
 
   // Update the progress bar based on the current time
   const updateProgress = useCallback(() => {
-    if (audioBuffer && audioContext && !isPlaying) {
+    if (audioBuffer && audioContext && !isPlaying && !hasReachedEnd) {
       const elapsed = audioContext.currentTime - startTimeRef.current;
       const percentage =
         ((pauseTimeRef.current + elapsed) / audioBuffer.duration) * 100;
@@ -50,7 +51,7 @@ const AudioPlayer: React.FC = () => {
       setCurrentTimes(pauseTimeRef.current + elapsed);
       animationFrameRef.current = requestAnimationFrame(updateProgress);
     }
-  }, [audioBuffer, audioContext, isPlaying]);
+  }, [audioBuffer, audioContext, isPlaying, hasReachedEnd]);
 
   // Manage the play/pause functionality
   const playAudio = () => {
@@ -60,6 +61,7 @@ const AudioPlayer: React.FC = () => {
         createAndStartSource(pauseTimeRef.current);
         startTimeRef.current = audioContext.currentTime - pauseTimeRef.current;
         setIsPlaying(true);
+        setHasReachedEnd(false);
         pauseTimeRef.current = 0;
         animationFrameRef.current = requestAnimationFrame(updateProgress);
       } else {
@@ -124,6 +126,15 @@ const AudioPlayer: React.FC = () => {
   useEffect(() => {
     setCurrentTimes((progress / 100) * (audioBuffer?.duration || 0));
   }, [progress, audioBuffer?.duration]);
+
+  useEffect(() => {
+    if (Math.floor(audioBuffer?.duration) === Math.floor(currentTimes)) {
+      setCurrentTimes(audioBuffer.duration);
+      setIsPlaying(false);
+      setHasReachedEnd(true);
+      cancelAnimationFrame(animationFrameRef.current!);
+    }
+  }, [audioBuffer?.duration, currentTimes]);
 
   return (
     <div className="flex gap-3 justify-center items-center">
