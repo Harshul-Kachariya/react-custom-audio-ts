@@ -163,17 +163,20 @@ const AudioPlayer = ({ audioUrl }: { audioUrl: string }): any => {
       >
         Audio
       </button> */}
-      <button onClick={playAudio}>
+      <button onClick={playAudio} className="text-sm">
         {isPlaying ? <FaPause /> : <FaPlay />}
       </button>
-      <div className="text-lg">{formatTime(currentTimes)}</div>
-
+      <div className="text-sm">
+        {isPlaying && !hasReachedEnd
+          ? formatTime(currentTimes)
+          : formatTime(audioBuffer?.duration)}
+      </div>
       <input
         type="range"
         max="100"
         value={progress}
         onChange={handleProgressBarChange}
-        className="w-40 h-[2px] cursor-pointe accent-black"
+        className="w-20 h-[2px] cursor-pointe accent-black"
       />
 
       <button onClick={toggleMute}>
